@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Profile</title>
+    <style>
+        /* CSS Variables for Dark/Light Mode */
+        :root {
+            --bg-color: #1a202c;
+            --text-color: #e2e8f0;
+            --container-bg: #2d3748;
+            --border-color: #4a5568;
+            --btn-bg: #4c51bf;
+            --btn-text: #ffffff;
+        }
+
+        body.light-mode {
+            --bg-color: #f7fafc;
+            --text-color: #2d3748;
+            --container-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --btn-bg: #667eea;
+            --btn-text: #ffffff;
+        }
+        
+        body {
+            font-family: sans-serif;
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        #profile-container {
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            background-color: var(--container-bg);
+            text-align: center;
+        }
+
+        .profile-pfp {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 20px;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+        }
+    </style>
+</head>
+<body class="dark-mode">
+    <div id="profile-container">
+        <h1 id="profile-username"></h1>
+        <img id="profile-pfp-img" class="profile-pfp" src="" alt="Profile Picture">
+    </div>
+
+    <button class="theme-toggle" onclick="toggleTheme()">Toggle Dark/Light Mode</button>
+    <p style="text-align: center;"><a href="index.html">Back to Main App</a></p>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+        const MASTER_KEY = 'YOUR_MASTER_KEY';
+        const USERS_BIN_ID = 'YOUR_USERS_BIN_ID';
+        const api = 'https://api.jsonbin.io/v3/b/';
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+        }
+
+        // Set initial theme
+        if (localStorage.getItem('theme') === 'light') {
+            document.body.classList.add('light-mode');
+        }
+
+        async function fetchProfile() {
+            const params = new URLSearchParams(window.location.search);
+            const username = params.get('user');
+
+            if (!username) {
+                document.getElementById('profile-username').textContent = 'User not found.';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${api}${USERS_BIN_ID}`, {
+                    method: 'GET',
+                    headers: {'X-Master-Key': MASTER_KEY}
+                });
+                const userData = await response.json();
+                const user = userData.record.users.find(u => u.username === username);
+
+                if (user) {
+                    document.getElementById('profile-username').textContent = user.username;
+                    document.getElementById('profile-pfp-img').src = user.pfp_url || 'https://i.pravatar.cc/300?u=default';
+                } else {
+                    document.getElementById('profile-username').textContent = 'User not found.';
+                }
+            } catch (error) {
+                console.error('Error fetching user profile:', error);
+                document.getElementById('profile-username').textContent = 'An error occurred.';
+            }
+        }
+
+        window.onload = fetchProfile;
+    </script>
+</body>
+</html>
