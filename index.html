@@ -4,23 +4,168 @@
     <meta charset="UTF-8">
     <title>Simple Social App (MD5 Version)</title>
     <style>
-        body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; }
-        #app-container { border: 1px solid #ccc; padding: 20px; }
-        #login-form { display: block; }
-        #main-app { display: none; }
-        #messages-container { border: 1px solid #eee; padding: 10px; margin-top: 10px; }
-        .message { border-bottom: 1px solid #eee; padding: 5px 0; }
-        .dm { background-color: #f0f8ff; }
-        .pfp { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
-        .profile-pfp { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; }
+        /* CSS Variables for Dark/Light Mode */
+        :root {
+            --bg-color: #1a202c;
+            --text-color: #e2e8f0;
+            --container-bg: #2d3748;
+            --border-color: #4a5568;
+            --btn-bg: #4c51bf;
+            --btn-text: #ffffff;
+            --message-bg: #2d3748;
+            --dm-bg: #344252;
+            --input-bg: #4a5568;
+            --input-text: #e2e8f0;
+            --nav-bg: #2d3748;
+        }
+
+        body.light-mode {
+            --bg-color: #f7fafc;
+            --text-color: #2d3748;
+            --container-bg: #ffffff;
+            --border-color: #e2e8f0;
+            --btn-bg: #667eea;
+            --btn-text: #ffffff;
+            --message-bg: #edf2f7;
+            --dm-bg: #e2e8f0;
+            --input-bg: #edf2f7;
+            --input-text: #2d3748;
+            --nav-bg: #e2e8f0;
+        }
+
+        body {
+            font-family: sans-serif;
+            max-width: 900px;
+            margin: auto;
+            padding: 20px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        #app-container {
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            background-color: var(--container-bg);
+        }
+
+        #login-form {
+            display: block;
+        }
+
+        #main-app {
+            display: none;
+            display: flex;
+            gap: 20px;
+        }
+
+        #main-content {
+            flex: 1;
+        }
+
+        #sidebar {
+            width: 250px;
+            border-left: 1px solid var(--border-color);
+            padding-left: 20px;
+        }
+
+        #messages-container {
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        .message {
+            border: 1px solid var(--border-color);
+            background-color: var(--message-bg);
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+        }
+        
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+
+        .dm {
+            background-color: var(--dm-bg);
+        }
+
+        .pfp {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .profile-pfp {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        
+        input[type="text"], input[type="password"], input[type="url"] {
+            background-color: var(--input-bg);
+            color: var(--input-text);
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            margin-bottom: 10px;
+            width: calc(100% - 16px);
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: var(--btn-bg);
+            color: var(--btn-text);
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        nav {
+            margin-bottom: 20px;
+            background-color: var(--nav-bg);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        nav button {
+            margin-right: 10px;
+        }
+        
+        .dm-contact {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .dm-contact:hover {
+            background-color: var(--dm-bg);
+        }
+
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+        }
     </style>
 </head>
-<body>
+<body class="dark-mode">
 
     <div id="app-container">
         <header>
             <h1>Simple Social App</h1>
             <p id="auth-status"></p>
+            <button class="theme-toggle" onclick="toggleTheme()">Toggle Dark/Light Mode</button>
         </header>
 
         <section id="login-form">
@@ -36,69 +181,104 @@
         </section>
 
         <section id="main-app">
-            <nav>
-                <button onclick="showPublicMessages()">Public Feed</button>
-                <button onclick="showDMs()">My DMs</button>
-                <button onclick="showProfile()">Profile</button>
-                <button onclick="showSettings()">Settings</button>
-                <button onclick="signOut()">Sign Out</button>
-            </nav>
+            <div id="main-content">
+                <nav>
+                    <button onclick="showPublicMessages()">Public Feed</button>
+                    <button onclick="showDMsMenu()">My DMs</button>
+                    <button onclick="showProfile()">Profile</button>
+                    <button onclick="showSettings()">Settings</button>
+                    <button onclick="signOut()">Sign Out</button>
+                </nav>
 
-            <div id="feed">
-                <h2>Public Feed</h2>
-                <form id="public-message-form">
-                    <input type="text" id="public-message-content" placeholder="What's on your mind?" required><br>
-                    <button type="submit">Send Message</button>
-                </form>
-                <div id="public-messages-list"></div>
-            </div>
+                <div id="feed">
+                    <h2>Public Feed</h2>
+                    <form id="public-message-form">
+                        <input type="text" id="public-message-content" placeholder="What's on your mind?" required><br>
+                        <button type="submit">Send Message</button>
+                    </form>
+                    <div id="public-messages-list"></div>
+                </div>
 
-            <div id="dms" style="display: none;">
-                <h2>Direct Messages</h2>
-                <form id="dm-form">
-                    <input type="text" id="dm-recipient" placeholder="Recipient Username" required><br>
-                    <input type="text" id="dm-content" placeholder="Your message" required><br>
-                    <button type="submit">Send DM</button>
-                </form>
-                <div id="dms-list"></div>
+                <div id="dms" style="display: none;">
+                    <h2>Direct Messages</h2>
+                    <form id="dm-form">
+                        <input type="text" id="dm-recipient" placeholder="Recipient Username" required><br>
+                        <input type="text" id="dm-content" placeholder="Your message" required><br>
+                        <button type="submit">Send DM</button>
+                    </form>
+                    <div id="dms-list"></div>
+                </div>
+                
+                <div id="profile-page" style="display: none;">
+                    <h2 id="profile-username"></h2>
+                    <img id="profile-pfp-img" class="profile-pfp" src="" alt="Profile Picture">
+                </div>
+
+                <div id="settings-page" style="display: none;">
+                    <h2>Settings</h2>
+                    <form id="settings-form">
+                        <label for="pfp-link">Profile Picture URL:</label><br>
+                        <input type="url" id="pfp-link" required><br>
+                        <button type="submit">Update Profile Picture</button>
+                    </form>
+                </div>
             </div>
             
-            <div id="profile-page" style="display: none;">
-                <h2 id="profile-username"></h2>
-                <img id="profile-pfp-img" class="profile-pfp" src="" alt="Profile Picture">
-            </div>
-
-            <div id="settings-page" style="display: none;">
-                <h2>Settings</h2>
-                <form id="settings-form">
-                    <label for="pfp-link">Profile Picture URL:</label><br>
-                    <input type="url" id="pfp-link" required><br>
-                    <button type="submit">Update Profile Picture</button>
-                </form>
+            <div id="sidebar">
+                <div id="dms-sidebar-menu" style="display: none;">
+                    <h3>Your Conversations</h3>
+                    <div id="dm-contacts-list"></div>
+                </div>
             </div>
         </section>
     </div>
 
-    <!-- Use a client-side MD5 library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script>
-        // REPLACE WITH YOUR JSONBIN INFO
-        const MASTER_KEY = '$2a$10$cmsfxK9yOcAb6syOnGDpl.uhVR3pfNChOLhJlUc7iPlmFbgjQuXZG';
-        const USERS_BIN_ID = '68d409cc43b1c97be94e664d';
-        const MESSAGES_BIN_ID = '68d40a51ae596e708ffa20da';
-        const DMS_BIN_ID = '68d40a9cae596e708ffa215a';
+        const MASTER_KEY = 'YOUR_MASTER_KEY';
+        const USERS_BIN_ID = 'YOUR_USERS_BIN_ID';
+        const MESSAGES_BIN_ID = 'YOUR_MESSAGES_BIN_ID';
+        const DMS_BIN_ID = 'YOUR_DMS_BIN_ID';
 
         const api = 'https://api.jsonbin.io/v3/b/';
 
         let currentUser = null;
-        let userDataCache = null; // Cache user data after login
+        let userDataCache = null;
+        let dmsDataCache = null;
+        let messagesDataCache = null;
 
-        // Utility to hide all content sections
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+        }
+
+        // Set initial theme
+        if (localStorage.getItem('theme') === 'light') {
+            document.body.classList.add('light-mode');
+        }
+
         function hideAllSections() {
             document.getElementById('feed').style.display = 'none';
             document.getElementById('dms').style.display = 'none';
             document.getElementById('profile-page').style.display = 'none';
             document.getElementById('settings-page').style.display = 'none';
+            document.getElementById('dms-sidebar-menu').style.display = 'none';
+        }
+
+        async function fetchInitialData() {
+            try {
+                const [usersResponse, dmsResponse, messagesResponse] = await Promise.all([
+                    fetch(`${api}${USERS_BIN_ID}`, { headers: {'X-Master-Key': MASTER_KEY} }),
+                    fetch(`${api}${DMS_BIN_ID}`, { headers: {'X-Master-Key': MASTER_KEY} }),
+                    fetch(`${api}${MESSAGES_BIN_ID}/latest`)
+                ]);
+                userDataCache = await usersResponse.json();
+                dmsDataCache = await dmsResponse.json();
+                messagesDataCache = await messagesResponse.json();
+            } catch (error) {
+                console.error("Error fetching initial data:", error);
+                alert("Failed to load app data. Please check your JSONBin settings.");
+            }
         }
 
         document.getElementById('sign-in-form').addEventListener('submit', async (e) => {
@@ -107,26 +287,17 @@
             const password = document.getElementById('password').value;
             const passwordHash = CryptoJS.MD5(password).toString();
             
-            try {
-                const response = await fetch(`${api}${USERS_BIN_ID}`, {
-                    method: 'GET',
-                    headers: {'X-Master-Key': MASTER_KEY}
-                });
-                userDataCache = await response.json();
-                const user = userDataCache.record.users.find(u => u.username === username);
+            await fetchInitialData();
+            const user = userDataCache.record.users.find(u => u.username === username);
 
-                if (user && user.passwordHash === passwordHash) {
-                    currentUser = user.username;
-                    document.getElementById('auth-status').textContent = `Logged in as ${currentUser}`;
-                    document.getElementById('login-form').style.display = 'none';
-                    document.getElementById('main-app').style.display = 'block';
-                    showPublicMessages();
-                } else {
-                    alert('Invalid username or password.');
-                }
-            } catch (error) {
-                console.error('Error during sign-in:', error);
-                alert('An error occurred. Please try again.');
+            if (user && user.passwordHash === passwordHash) {
+                currentUser = user.username;
+                document.getElementById('auth-status').textContent = `Logged in as ${currentUser}`;
+                document.getElementById('login-form').style.display = 'none';
+                document.getElementById('main-app').style.display = 'flex';
+                showPublicMessages();
+            } else {
+                alert('Invalid username or password.');
             }
         });
 
@@ -144,6 +315,7 @@
 
             await updateBin(MESSAGES_BIN_ID, 'messages', newMessage);
             document.getElementById('public-message-content').value = '';
+            messagesDataCache.record.messages.unshift(newMessage); // Update cache
             showPublicMessages();
         });
 
@@ -164,7 +336,8 @@
             await updateBin(DMS_BIN_ID, 'dms', newDM, MASTER_KEY);
             document.getElementById('dm-recipient').value = '';
             document.getElementById('dm-content').value = '';
-            showDMs();
+            dmsDataCache.record.dms.unshift(newDM); // Update cache
+            showDMs(recipient);
         });
 
         document.getElementById('settings-form').addEventListener('submit', async (e) => {
@@ -173,17 +346,15 @@
             
             if (!currentUser || !pfpLink) return;
 
-            // Find the current user and update their pfp_url
             const users = userDataCache.record.users;
             const userIndex = users.findIndex(u => u.username === currentUser);
             if (userIndex !== -1) {
                 users[userIndex].pfp_url = pfpLink;
             }
 
-            // Update the entire users bin with the new data
             await updateBin(USERS_BIN_ID, 'users', users, MASTER_KEY, true);
             alert('Profile picture updated successfully!');
-            showProfile(); // Redirect to profile page
+            showProfile();
         });
 
         async function updateBin(binId, key, newData, accessKey = null, replaceAll = false) {
@@ -220,48 +391,64 @@
             const messagesList = document.getElementById('public-messages-list');
             messagesList.innerHTML = '';
             
-            try {
-                const response = await fetch(`${api}${MESSAGES_BIN_ID}/latest`);
-                const data = await response.json();
-                data.record.messages.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach(msg => {
-                    const el = document.createElement('div');
-                    el.className = 'message';
-                    const user = userDataCache.record.users.find(u => u.username === msg.author);
-                    const pfpUrl = user ? user.pfp_url : 'https://i.pravatar.cc/300?u=default';
-                    el.innerHTML = `
+            const messagesToShow = messagesDataCache.record.messages.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 150);
+            messagesToShow.forEach(msg => {
+                const el = document.createElement('div');
+                el.className = 'message';
+                const user = userDataCache.record.users.find(u => u.username === msg.author);
+                const pfpUrl = user ? user.pfp_url : 'https://i.pravatar.cc/300?u=default';
+                el.innerHTML = `
+                    <div class="message-header">
                         <img class="pfp" src="${pfpUrl}" alt="Profile Picture">
-                        <strong>${msg.author}</strong> at ${new Date(msg.timestamp).toLocaleString()}: ${msg.content}
-                    `;
-                    messagesList.appendChild(el);
-                });
-            } catch (error) {
-                console.error('Error fetching public messages:', error);
-            }
+                        <strong><a href="profile.html?user=${msg.author}">${msg.author}</a></strong>
+                    </div>
+                    <p>${msg.content}</p>
+                    <small>${new Date(msg.timestamp).toLocaleString()}</small>
+                `;
+                messagesList.appendChild(el);
+            });
         }
 
-        async function showDMs() {
+        async function showDMsMenu() {
+            hideAllSections();
+            document.getElementById('dms-sidebar-menu').style.display = 'block';
+            const dmContactsList = document.getElementById('dm-contacts-list');
+            dmContactsList.innerHTML = '';
+            
+            const userConversations = new Set();
+            dmsDataCache.record.dms.forEach(dm => {
+                if (dm.sender === currentUser) userConversations.add(dm.recipient);
+                if (dm.recipient === currentUser) userConversations.add(dm.sender);
+            });
+
+            userConversations.forEach(contact => {
+                const el = document.createElement('div');
+                el.className = 'dm-contact';
+                el.textContent = contact;
+                el.onclick = () => showDMs(contact);
+                dmContactsList.appendChild(el);
+            });
+        }
+        
+        async function showDMs(contactUsername) {
             hideAllSections();
             document.getElementById('dms').style.display = 'block';
             const dmsList = document.getElementById('dms-list');
             dmsList.innerHTML = '';
+            document.getElementById('dm-recipient').value = contactUsername;
 
-            try {
-                const response = await fetch(`${api}${DMS_BIN_ID}`, {
-                    method: 'GET',
-                    headers: {'X-Master-Key': MASTER_KEY}
-                });
-                const data = await response.json();
-                const myDMs = data.record.dms.filter(dm => dm.sender === currentUser || dm.recipient === currentUser);
-                myDMs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach(dm => {
-                    const el = document.createElement('p');
-                    el.className = 'message dm';
-                    const label = dm.sender === currentUser ? `To ${dm.recipient}` : `From ${dm.sender}`;
-                    el.textContent = `${label} at ${new Date(dm.timestamp).toLocaleString()}: ${dm.content}`;
-                    dmsList.appendChild(el);
-                });
-            } catch (error) {
-                console.error('Error fetching DMs:', error);
-            }
+            const myDMs = dmsDataCache.record.dms.filter(dm => 
+                (dm.sender === currentUser && dm.recipient === contactUsername) ||
+                (dm.sender === contactUsername && dm.recipient === currentUser)
+            );
+
+            myDMs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach(dm => {
+                const el = document.createElement('div');
+                el.className = 'message dm';
+                const sender = dm.sender === currentUser ? 'You' : dm.sender;
+                el.innerHTML = `<strong>${sender}</strong> at ${new Date(dm.timestamp).toLocaleString()}: ${dm.content}`;
+                dmsList.appendChild(el);
+            });
         }
 
         function showProfile() {
@@ -286,6 +473,8 @@
         function signOut() {
             currentUser = null;
             userDataCache = null;
+            dmsDataCache = null;
+            messagesDataCache = null;
             document.getElementById('auth-status').textContent = '';
             document.getElementById('login-form').style.display = 'block';
             document.getElementById('main-app').style.display = 'none';
