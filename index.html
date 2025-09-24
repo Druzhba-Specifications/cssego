@@ -11,6 +11,8 @@
         #messages-container { border: 1px solid #eee; padding: 10px; margin-top: 10px; }
         .message { border-bottom: 1px solid #eee; padding: 5px 0; }
         .dm { background-color: #f0f8ff; }
+        .pfp { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; }
+        .profile-pfp { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; }
     </style>
 </head>
 <body>
@@ -37,6 +39,8 @@
             <nav>
                 <button onclick="showPublicMessages()">Public Feed</button>
                 <button onclick="showDMs()">My DMs</button>
+                <button onclick="showProfile()">Profile</button>
+                <button onclick="showSettings()">Settings</button>
                 <button onclick="signOut()">Sign Out</button>
             </nav>
 
@@ -58,6 +62,20 @@
                 </form>
                 <div id="dms-list"></div>
             </div>
+            
+            <div id="profile-page" style="display: none;">
+                <h2 id="profile-username"></h2>
+                <img id="profile-pfp-img" class="profile-pfp" src="" alt="Profile Picture">
+            </div>
+
+            <div id="settings-page" style="display: none;">
+                <h2>Settings</h2>
+                <form id="settings-form">
+                    <label for="pfp-link">Profile Picture URL:</label><br>
+                    <input type="url" id="pfp-link" required><br>
+                    <button type="submit">Update Profile Picture</button>
+                </form>
+            </div>
         </section>
     </div>
 
@@ -65,14 +83,23 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script>
         // REPLACE WITH YOUR JSONBIN INFO
-        const MASTER_KEY = 'Y$2a$10$cmsfxK9yOcAb6syOnGDpl.uhVR3pfNChOLhJlUc7iPlmFbgjQuXZG';
-        const USERS_BIN_ID = '68d409cc43b1c97be94e664d';
-        const MESSAGES_BIN_ID = '68d40a51ae596e708ffa20da';
-        const DMS_BIN_ID = '68d40a9cae596e708ffa215a';
+        const MASTER_KEY = 'YOUR_MASTER_KEY';
+        const USERS_BIN_ID = 'YOUR_USERS_BIN_ID';
+        const MESSAGES_BIN_ID = 'YOUR_MESSAGES_BIN_ID';
+        const DMS_BIN_ID = 'YOUR_DMS_BIN_ID';
 
         const api = 'https://api.jsonbin.io/v3/b/';
 
         let currentUser = null;
+        let userDataCache = null; // Cache user data after login
+
+        // Utility to hide all content sections
+        function hideAllSections() {
+            document.getElementById('feed').style.display = 'none';
+            document.getElementById('dms').style.display = 'none';
+            document.getElementById('profile-page').style.display = 'none';
+            document.getElementById('settings-page').style.display = 'none';
+        }
 
         document.getElementById('sign-in-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -85,8 +112,8 @@
                     method: 'GET',
                     headers: {'X-Master-Key': MASTER_KEY}
                 });
-                const userData = await response.json();
-                const user = userData.record.users.find(u => u.username === username);
+                userDataCache = await response.json();
+                const user = userDataCache.record.users.find(u => u.username === username);
 
                 if (user && user.passwordHash === passwordHash) {
                     currentUser = user.username;
@@ -140,14 +167,39 @@
             showDMs();
         });
 
-        async function updateBin(binId, key, newData, accessKey = null) {
+        document.getElementById('settings-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const pfpLink = document.getElementById('pfp-link').value;
+            
+            if (!currentUser || !pfpLink) return;
+
+            // Find the current user and update their pfp_url
+            const users = userDataCache.record.users;
+            const userIndex = users.findIndex(u => u.username === currentUser);
+            if (userIndex !== -1) {
+                users[userIndex].pfp_url = pfpLink;
+            }
+
+            // Update the entire users bin with the new data
+            await updateBin(USERS_BIN_ID, 'users', users, MASTER_KEY, true);
+            alert('Profile picture updated successfully!');
+            showProfile(); // Redirect to profile page
+        });
+
+        async function updateBin(binId, key, newData, accessKey = null, replaceAll = false) {
             try {
-                const response = await fetch(`${api}${binId}`, {
-                    method: 'GET',
-                    headers: {'X-Master-Key': accessKey || MASTER_KEY}
-                });
-                const binData = await response.json();
-                const updatedRecord = { ...binData.record, [key]: [...binData.record[key], newData] };
+                let updatedRecord;
+                if (replaceAll) {
+                    updatedRecord = { [key]: newData };
+                } else {
+                    const response = await fetch(`${api}${binId}`, {
+                        method: 'GET',
+                        headers: {'X-Master-Key': accessKey || MASTER_KEY}
+                    });
+                    if (!response.ok) throw new Error('Failed to retrieve bin data.');
+                    const binData = await response.json();
+                    updatedRecord = { ...binData.record, [key]: [...binData.record[key], newData] };
+                }
 
                 await fetch(`${api}${binId}`, {
                     method: 'PUT',
@@ -163,8 +215,8 @@
         }
 
         async function showPublicMessages() {
+            hideAllSections();
             document.getElementById('feed').style.display = 'block';
-            document.getElementById('dms').style.display = 'none';
             const messagesList = document.getElementById('public-messages-list');
             messagesList.innerHTML = '';
             
@@ -172,9 +224,14 @@
                 const response = await fetch(`${api}${MESSAGES_BIN_ID}/latest`);
                 const data = await response.json();
                 data.record.messages.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach(msg => {
-                    const el = document.createElement('p');
+                    const el = document.createElement('div');
                     el.className = 'message';
-                    el.textContent = `${msg.author} at ${new Date(msg.timestamp).toLocaleString()}: ${msg.content}`;
+                    const user = userDataCache.record.users.find(u => u.username === msg.author);
+                    const pfpUrl = user ? user.pfp_url : 'https://i.pravatar.cc/300?u=default';
+                    el.innerHTML = `
+                        <img class="pfp" src="${pfpUrl}" alt="Profile Picture">
+                        <strong>${msg.author}</strong> at ${new Date(msg.timestamp).toLocaleString()}: ${msg.content}
+                    `;
                     messagesList.appendChild(el);
                 });
             } catch (error) {
@@ -183,7 +240,7 @@
         }
 
         async function showDMs() {
-            document.getElementById('feed').style.display = 'none';
+            hideAllSections();
             document.getElementById('dms').style.display = 'block';
             const dmsList = document.getElementById('dms-list');
             dmsList.innerHTML = '';
@@ -207,8 +264,28 @@
             }
         }
 
+        function showProfile() {
+            hideAllSections();
+            document.getElementById('profile-page').style.display = 'block';
+            const user = userDataCache.record.users.find(u => u.username === currentUser);
+            if (user) {
+                document.getElementById('profile-username').textContent = user.username;
+                document.getElementById('profile-pfp-img').src = user.pfp_url || 'https://i.pravatar.cc/300?u=default';
+            }
+        }
+
+        function showSettings() {
+            hideAllSections();
+            document.getElementById('settings-page').style.display = 'block';
+            const user = userDataCache.record.users.find(u => u.username === currentUser);
+            if (user) {
+                document.getElementById('pfp-link').value = user.pfp_url || '';
+            }
+        }
+
         function signOut() {
             currentUser = null;
+            userDataCache = null;
             document.getElementById('auth-status').textContent = '';
             document.getElementById('login-form').style.display = 'block';
             document.getElementById('main-app').style.display = 'none';
